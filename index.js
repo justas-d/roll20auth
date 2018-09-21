@@ -15,7 +15,6 @@ class Roll20SessionKey {
 const getGNTKN = (sessionKey, campaignId) => {
     return new Promise((ok, err) => {
             const cookies = sessionKey.makeCookies();
-            console.log(cookies);
 
             const headers = {
                 'Cookie': cookies
