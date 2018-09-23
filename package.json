@@ -1,6 +1,6 @@
 {
   "name": "roll20auth",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Provides an API to authenticate with Roll20 and retrive session and firebase keys.",
   "main": "index.js",
   "scripts": {
