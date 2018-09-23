@@ -12,93 +12,103 @@ class Roll20SessionKey {
     }
 }
 
-const getGNTKN = (sessionKey, campaignId) => {
-    return new Promise((ok, err) => {
-            const cookies = sessionKey.makeCookies();
+const getGNTKN = async (sessionKey, campaignId) => {
+    const cookies = sessionKey.makeCookies();
 
-            const headers = {
-                'Cookie': cookies
-            };
+    const headers = {
+        'Cookie': cookies
+    };
 
-            rp({
-                url: `https://app.roll20.net/editor/setcampaign/${campaignId}`,
-                headers,
-                resolveWithFullResponse: true,
-            }).then(() => {
-                rp({
-                    url: `https://app.roll20.net/editor/startjs/?timestamp=${Math.floor(new Date() / 1000)}&disablewebgl=false&forcelongpolling=false&offsite=false&fbdebug=false&forcetouch=false`,
-                    headers
-                }).then(body => {
-                    const gntknMatch = "window.GNTKN = \"";
-                    const idx = body.indexOf(gntknMatch);
+    await rp({
+        url: `https://app.roll20.net/editor/setcampaign/${campaignId}`,
+        method: "GET",
+        headers,
+        resolveWithFullResponse: true,
+    });
 
-                    if (idx === -1) {
-                        err({
-                            error: `couldn't find ${gntknMatch} in body`,
-                            body
-                        });
+    const body = await rp({
+        url: `https://app.roll20.net/editor/startjs/?timestamp=${Math.floor(new Date() / 1000)}&disablewebgl=false&forcelongpolling=false&offsite=false&fbdebug=false&forcetouch=false`,
+        method: "GET",
+        headers
+    });
 
-                        return;
-                    }
+    const gntknMatch = "window.GNTKN = \"";
+    const idx = body.indexOf(gntknMatch);
 
-                    let gntkn = body.substring(idx);
-                    gntkn = gntkn.substring(gntknMatch.length, gntkn.indexOf("\";"));
+    if (idx === -1) {
+        throw new Error(`couldn't find ${gntknMatch} in body`);
+    }
 
-                    ok(gntkn);
-                }).catch(err);
-            }).catch(err);
-        }
-    );
+    let gntkn = body.substring(idx);
+    gntkn = gntkn.substring(gntknMatch.length, gntkn.indexOf("\";"));
+
+    return gntkn;
 };
 
-const getSessionKey = (username, password, tempAuth = "42") => new Promise((ok, err) => {
+const getSessionKey = async (username, password, tempAuth = "42") => {
     const tempAuthCookie = `roll20tempauth=${tempAuth}; `;
 
-    rp({
+    const topbarResponse = await rp({
         url: `https://app.roll20.net/sessions/topbar/${tempAuth}`,
+        method: "GET",
         headers: {"Cookie": tempAuthCookie},
         resolveWithFullResponse: true
-    }).then(response => {
+    });
 
-        const getCookieValue = (cookie) => cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(";"));
+    const getCookieValue = (cookie) => cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(";"));
+    const getCookieName = (cookie) => cookie.substring(0, cookie.indexOf("="));
 
-        let cookies = tempAuthCookie;
-        for (const cook of response.headers["set-cookie"]) {
-            cookies += `${cook}=${getCookieValue(cook)}; `;
+    const key = new Roll20SessionKey(null, tempAuth.toString(), null);
+
+    let cookies = tempAuthCookie;
+    for (const cook of topbarResponse.headers["set-cookie"]) {
+        const name = getCookieName(cook);
+        const val = getCookieValue(cook);
+
+        if(name === "__cfduid") {
+            key.cfduid = val;
         }
 
-        rp({
-            url: 'https://app.roll20.net/sessions/create',
-            method: 'POST',
-            headers: {'Cookie': cookies},
-            body: `email=${username}&password=${password}`,
-            simple: false,
-            resolveWithFullResponse: true
+        cookies += `${name}=${val}; `;
+    }
 
-        }).then(() => {
-            const key = new Roll20SessionKey(null, tempAuth.toString(), null);
+    const createSeshResponse = await rp({
+        url: 'https://app.roll20.net/sessions/create',
+        method: 'POST',
+        headers: {'Cookie': cookies},
+        body: `email=${username}&password=${password}`,
+        simple: false,
+        resolveWithFullResponse: true
+    });
 
-            for (const cook of response.headers["set-cookie"]) {
-                let target = null;
-                if (cook.startsWith("__cfduid")) {
-                    target = "cfduid";
-                } else if (cook.startsWith("rack.session")) {
-                    target = "rackSession";
-                } else if (cook.startsWith("roll20tempauth")) {
-                    target = "tempAuth"
-                }
+    const verifyLoggedInBody = await rp({
+        url: "https://app.roll20.net/account/",
+        method: "GET",
+        headers: {"Cookie": cookies},
+    });
 
-                if (target !== null) {
-                    key[target] = getCookieValue(cook);
-                }
-            }
+    if(verifyLoggedInBody.includes("Login")) {
+        throw new Error("Failed to log in.");
+    }
 
-            ok(key);
+    for (const cook of createSeshResponse.headers["set-cookie"]) {
 
+        let target = null;
+        if (cook.startsWith("__cfduid")) {
+            target = "cfduid";
+        } else if (cook.startsWith("rack.session")) {
+            target = "rackSession";
+        } else if (cook.startsWith("roll20tempauth")) {
+            target = "tempAuth"
+        }
 
-        }).catch(err);
-    }).catch(err);
-});
+        if (target !== null) {
+            key[target] = getCookieValue(cook);
+        }
+    }
+
+    return key;
+};
 
 module.exports = {
     getSessionKey,

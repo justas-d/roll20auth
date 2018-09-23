@@ -2,3 +2,4 @@ test.js
 .idea
 node_modules/
 .env
+misc.js
