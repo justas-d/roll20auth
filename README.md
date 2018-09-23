@@ -1,3 +1,7 @@
+# roll20auth
+[NPM](https://www.npmjs.com/package/roll20auth)
+[GitHub](https://github.com/SSStormy/roll20auth)
+
 ## Installation
 
 ```
