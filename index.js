@@ -76,7 +76,7 @@ const getSessionKey = async (username, password, tempAuth = "42") => {
         url: 'https://app.roll20.net/sessions/create',
         method: 'POST',
         headers: {'Cookie': cookies},
-        body: `email=${username}&password=${password}`,
+        body: `email=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
         simple: false,
         resolveWithFullResponse: true
     });

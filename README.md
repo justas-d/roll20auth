@@ -36,6 +36,24 @@ roll20auth.getSessionKey(username, password)
     }).catch(console.log);
 ```
 
+### Testing
+
+Make sure you have a `.env` file in the project root folder with the following data:
+```
+ROLL20_USERNAME=""
+ROLL20_PASSWORD=""
+
+ROLL20_USERNAME_UNESCAPED=""
+ROLL20_PASSWORD_UNESCAPED=""
+
+ROLL20_CAMPAIGN_ID=""
+```
+
+Run the tests
+```
+npm run test
+```
+
 ### License
 
 MIT

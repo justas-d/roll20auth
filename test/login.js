@@ -46,6 +46,17 @@ describe('getSessionKey', () => {
             });
         });
     });
+
+    describe('login with credentials that have unescaped characters', () => {
+        it("should succeed", async () => {
+            const key = await roll20auth.getSessionKey(
+                process.env.ROLL20_USERNAME_UNESCAPED,
+                process.env.ROLL20_PASSWORD_UNESCAPED
+            );
+
+            assertKeyIsGood(key);
+        });
+    });
 });
 
 describe("getGNTKN", () => {
