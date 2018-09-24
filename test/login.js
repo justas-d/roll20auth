@@ -2,14 +2,35 @@ const assert = require('assert');
 const roll20auth = require("../index");
 require('dotenv').load();
 
-const assertKeyIsGood = (key) => {
-    it("key should have rackSession", () => assert.equal(typeof(key.rackSession), "string"));
-    it("key should have tempAuth", () => assert.equal(typeof(key.tempAuth), "string"));
-    it("key should have cfduid", () => assert.equal(typeof(key.cfduid), "string"));
+const assertValidString = (str, name) => {
+    it(`key should have ${name}`, () => assert.equal(typeof(str), "string"));
+    it(`should have non empty ${name}`, () => assert.equal(str.length > 0, true));
+};
 
-    it("should have non empty rackSession", () => assert.equal(key.rackSession.length > 0, true));
-    it("should have non empty tempAuth", () => assert.equal(key.tempAuth.length > 0, true));
-    it("should have non empty cfduid", () => assert.equal(key.cfduid.length > 0, true));
+const assertGetter = (fx, val, name) => {
+    it(`getter return should match value of ${name}`, () => assert.equal(fx(), val));
+}
+
+const assertKeyIsGood = (key) => {
+    assertValidString(key.rackSession, "rackSession");
+    assertValidString(key.tempAuth, "tempAuth");
+    assertValidString(key.cfduid, "cfduid");
+
+    assertGetter(key.getSessionKey, key.rackSession, "rackSession");
+    assertGetter(key.getTempAuth, key.tempAuth, "tempAuth");
+    assertGetter(key.getCfduid, key.cfduid, "cfduid");
+};
+
+const assertCampaignDataIsGood = (data) => {
+    assertValidString(data.gntkn, "gntkn");
+    assertValidString(data.campaign, "campaign");
+    assertValidString(data.playerId, "playerId");
+    assertValidString(data.accId, "accId");
+
+    assertGetter(data.getGNTKN, data.gntkn, "gntkn");
+    assertGetter(data.getCampaignStoragePath, data.campaign, "campaign");
+    assertGetter(data.getPlayerId, data.playerId, "playerId");
+    assertGetter(data.getPlayerAccountId, data.accId, "accId");
 };
 
 const asyncThrows = async (fx) => {
@@ -63,19 +84,21 @@ describe("getGNTKN", () => {
     describe("geting GNTKN with a valid session key", () => {
         it("should succeed and log us in", async () => {
             const key = await roll20auth.getSessionKey(process.env.ROLL20_USERNAME, process.env.ROLL20_PASSWORD)
-
             assertKeyIsGood(key);
 
-            const gntkn = await roll20auth.getGNTKN(key, process.env.ROLL20_CAMPAIGN_ID);
-            it("should be a string", assert.equal(typeof(gntkn), "string"));
-            it("should not be empty", assert.equal(gntkn.length > 0, true));
+            const data = await roll20auth.getCampaignData(key, process.env.ROLL20_CAMPAIGN_ID);
+            assertCampaignDataIsGood(data);
+
+            assert.equal(data.getCampaignStoragePath(), process.env.EXPECTED_CAMPAIGN_STORAGE_PATH);
+            assert.equal(data.getPlayerId(), process.env.EXPECTED_PLAYER_ID);
+            assert.equal(data.getPlayerAccountId(), process.env.EXPECTED_PLAYER_ACC_ID);
         })
     });
 
     describe("geting GNTKN with a null session key", () => {
         it("should catch an error", async () => {
             await asyncThrows(async () =>{
-                await roll20auth.getGNTKN(null, process.env.ROLL20_CAMPAIGN_ID)
+                await roll20auth.getCampaignData(null, process.env.ROLL20_CAMPAIGN_ID)
             });
         })
     });
@@ -83,7 +106,7 @@ describe("getGNTKN", () => {
     describe("geting GNTKN with a trash key", () => {
         it("should catch an error", async () => {
             await asyncThrows(async () => {
-                await roll20auth.getGNTKN(new roll20auth.Roll20SessionKey("asdf", "asdf", "asdf"), process.env.ROLL20_CAMPAIGN_ID)
+                await roll20auth.getCampaignData(new roll20auth.Roll20SessionKey("asdf", "asdf", "asdf"), process.env.ROLL20_CAMPAIGN_ID)
             });
         })
     });
@@ -97,7 +120,7 @@ describe("getGNTKN", () => {
             assertKeyIsGood(key);
 
             await asyncThrows(async () => {
-                await roll20auth.getGNTKN(key, 1);
+                await roll20auth.getCampaignData(key, 1);
             });
         })
     });

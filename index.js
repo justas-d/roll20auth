@@ -10,9 +10,47 @@ class Roll20SessionKey {
     makeCookies() {
         return `__cfduid=${this.cfduid}; roll20tempauth=${this.tempAuth}; rack.session=${this.rackSession}`;
     }
+
+    getRackSession() {
+        return this.rackSession;
+    }
+
+    getTempAuth() {
+        return this.tempAuth;
+    }
+
+    getCfduid() {
+        return this.cfduid;
+    }
 }
 
-const getGNTKN = async (sessionKey, campaignId) => {
+class Roll20CampaignInfo {
+    constructor(gntkn, campaign, playerId, accId) {
+        this.gntkn = gntkn;
+        this.campaign = campaign;
+        this.playerId = playerId;
+        this.accId = accId;
+    }
+
+    getGNTKN() {
+        return this.gntkn;
+
+    }
+
+    getCampaignStoragePath() {
+        return this.campaign;
+    }
+
+    getPlayerId() {
+        return this.playerId;
+    }
+
+    getPlayerAccountId() {
+        return this.accId;
+    }
+}
+
+const getCampaignData = async (sessionKey, campaignId) => {
     const cookies = sessionKey.makeCookies();
 
     const headers = {
@@ -32,17 +70,24 @@ const getGNTKN = async (sessionKey, campaignId) => {
         headers
     });
 
-    const gntknMatch = "window.GNTKN = \"";
-    const idx = body.indexOf(gntknMatch);
+    const extractVar = (match, lookingFor) => {
+        const idx = body.indexOf(match);
 
-    if (idx === -1) {
-        throw new Error(`couldn't find ${gntknMatch} in body`);
-    }
+        if (idx === -1) {
+            throw new Error(`couldn't find ${gntknMatch} in body while looking for ${lookingFor}`);
+        }
 
-    let gntkn = body.substring(idx);
-    gntkn = gntkn.substring(gntknMatch.length, gntkn.indexOf("\";"));
+        // do parsing
+        let retval = body.substring(idx);
+        return retval.substring(match.length, retval.indexOf("\";"));
+    };
 
-    return gntkn;
+    const gntkn = extractVar("window.GNTKN = \"", "GNTKN");
+    const camp = extractVar("window.campaign_storage_path = \"", "campaign storage path");
+    const playerId =extractVar("window.d20_player_id = \"");
+    const accId = extractVar("window.d20_account_id = \"", "player account id");
+
+    return new Roll20CampaignInfo(gntkn, camp, playerId, accId);
 };
 
 const getSessionKey = async (username, password, tempAuth = "42") => {
@@ -65,7 +110,7 @@ const getSessionKey = async (username, password, tempAuth = "42") => {
         const name = getCookieName(cook);
         const val = getCookieValue(cook);
 
-        if(name === "__cfduid") {
+        if (name === "__cfduid") {
             key.cfduid = val;
         }
 
@@ -87,7 +132,7 @@ const getSessionKey = async (username, password, tempAuth = "42") => {
         headers: {"Cookie": cookies},
     });
 
-    if(verifyLoggedInBody.includes("Login")) {
+    if (verifyLoggedInBody.includes("Login")) {
         throw new Error("Failed to log in.");
     }
 
@@ -112,6 +157,6 @@ const getSessionKey = async (username, password, tempAuth = "42") => {
 
 module.exports = {
     getSessionKey,
-    getGNTKN,
+    getCampaignData,
     Roll20SessionKey,
 };

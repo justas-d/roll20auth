@@ -17,8 +17,22 @@ async/await
 const roll20auth = require("roll20auth");
 
 try {
-const key = await roll20auth.getSessionKey(username, password);
-const gntkn = await roll20auth.getGNTKN(key, campaignId);
+    const key = await roll20auth.getSessionKey(username, password);
+    /*
+        key.makeCookies();
+        key.getRackSession();
+        key.getTempAuth();
+        key.getCfduid();
+    */
+
+    const campaignData = await roll20auth.getCampaignData(key, campaignId);
+
+    /*
+        campaignData.getGNTKN();
+        campaignData.getCampaignStoragePath();
+        campaignData.getPlayerId();
+        campaignData.getPlayerAccountId();
+    */
 } catch(err) {
     /* ... */
 }
@@ -29,9 +43,21 @@ Promises
 const roll20auth = require("roll20auth");
 roll20auth.getSessionKey(username, password)
     .then(key => {
-        roll20auth.getGNTKN(key, campaignId)
-            .then(gntkn => {
-                /* ... */
+        /*
+            key.makeCookies();
+            key.getRackSession();
+            key.getTempAuth();
+            key.getCfduid();
+        */
+
+        roll20auth.getCampaignData(key, campaignId)
+            .then(campaignData => {
+                /*
+                    campaignData.getGNTKN();
+                    campaignData.getCampaignStoragePath();
+                    campaignData.getPlayerId();
+                    campaignData.getPlayerAccountId();
+                 */
             }).catch(console.log)
     }).catch(console.log);
 ```
