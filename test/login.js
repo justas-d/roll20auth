@@ -31,6 +31,8 @@ const assertCampaignDataIsGood = (data) => {
     assertGetter(data.getCampaignStoragePath, data.campaign, "campaign");
     assertGetter(data.getPlayerId, data.playerId, "playerId");
     assertGetter(data.getPlayerAccountId, data.accId, "accId");
+
+    assert(data.getCampaignStoragePath().includes("firebaseio.com"), "doesn't have sharding url");
 };
 
 const asyncThrows = async (fx) => {
@@ -89,7 +91,7 @@ describe("getGNTKN", () => {
             const data = await roll20auth.getCampaignData(key, process.env.ROLL20_CAMPAIGN_ID);
             assertCampaignDataIsGood(data);
 
-            assert.equal(data.getCampaignStoragePath(), process.env.EXPECTED_CAMPAIGN_STORAGE_PATH);
+            assert.equal(data.getCampaignStoragePath(), "https://roll20-9.firebaseio.com/" + process.env.EXPECTED_CAMPAIGN_STORAGE_PATH);
             assert.equal(data.getPlayerId(), process.env.EXPECTED_PLAYER_ID);
             assert.equal(data.getPlayerAccountId(), process.env.EXPECTED_PLAYER_ACC_ID);
         })

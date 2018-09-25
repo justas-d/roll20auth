@@ -86,8 +86,11 @@ const getCampaignData = async (sessionKey, campaignId) => {
     const camp = extractVar("window.campaign_storage_path = \"", "campaign storage path");
     const playerId =extractVar("window.d20_player_id = \"");
     const accId = extractVar("window.d20_account_id = \"", "player account id");
+    const shardingUrl = extractVar("window.FIREBASE_ROOT = \"", "firebase root");
 
-    return new Roll20CampaignInfo(gntkn, camp, playerId, accId);
+    const campaignPath = shardingUrl + camp;
+
+    return new Roll20CampaignInfo(gntkn, campaignPath, playerId, accId);
 };
 
 const getSessionKey = async (username, password, tempAuth = "42") => {
